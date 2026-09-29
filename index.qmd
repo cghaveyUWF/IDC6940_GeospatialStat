@@ -21,32 +21,13 @@ editor:
 Slides: [slides.html](slides.html){target="_blank"} ( Go to `slides.qmd`
 to edit)
 
-::: callout-important
-**Remember:** Your goal is to make your audience understand and care
-about your findings. By crafting a compelling story, you can effectively
-communicate the value of your data science project.
-
-Carefully read this template since it has instructions and tips to
-writing!
-
-Nice report! I am adding this to show updates from RStudio.
-:::
-
 ## Introduction
 
-The introduction should:
+Convolutional neural networks (CNNs) have become the standard approach for automated land cover classification from satellite imagery, with reported accuracies exceeding 90% on large benchmark datasets such as BigEarthNet, a 480,000-patch multi-label archive covering ten European countries (Sumbul et al., 2019). Despite this performance, CNN classifiers typically output only a single point prediction with an associated confidence score, and this score is not a statistically reliable estimate of predictive uncertainty. Deep networks are frequently overconfident, particularly for underrepresented classes. In BigEarthNet, class frequency ranges from over 188,000 instances for "Arable land" to 1,316 for "Beaches, dunes, sands," a roughly 140-fold imbalance that is likely to affect classification reliability unevenly across classes.
 
--   Develop a storyline that captures attention and maintains interest.
+This lack of formal uncertainty quantification has practical consequences: point predictions provide no mechanism for distinguishing reliable classifications from unreliable ones, which limits their use in applications where classification errors carry meaningful cost. A recent survey of deep learning in remote sensing identifies uncertainty quantification as a comparatively underdeveloped area of the field, noting that most published models report point predictions without accompanying reliability measures (Rao et al., 2026).
 
--   Your audience is your peers
-
--   Clearly state the problem or question you're addressing.
-
-<!-- -->
-
--   Introduce why it is relevant needs.
-
--   Provide an overview of your approach.
+This project addresses that gap by applying conformal prediction, a distribution-free statistical framework that constructs prediction sets with a guaranteed coverage probability, to a CNN trained on the BigEarthNet multi-label land cover classification task. The objective is to evaluate not only classification accuracy but also the calibration and class-wise behavior of the resulting prediction sets, with particular attention to whether prediction set size varies systematically with class imbalance. The remainder of this paper reviews related work in CNN-based remote sensing classification and conformal prediction, describes the model architecture and calibration procedure, and presents classification and uncertainty quantification results.
 
 Example of writing including citing references:
 
