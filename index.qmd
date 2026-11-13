@@ -1,6 +1,6 @@
 ---
-title: "Geospatial Stats "
-subtitle: "TEST TEST"
+title: "Conformal Prediction for Uncertainty Quantification in Multi-Label Land Cover Classification with Convolutional Neural Networks on BigEarthNet"
+subtitle: "Capstone Projects in Data Science - Fall 2026"
 author: "Colin Havey (Advisor: Dr. Cohen)"
 date: '`r Sys.Date()`'
 format:
@@ -17,8 +17,7 @@ editor:
   markdown: 
     wrap: 72
 ---
-Slides: [slides.html](slides.html){target="_blank"} ( Go to `slides.qmd`
-to edit)
+Slides: [slides.html](slides.html){target="_blank"}
 
 ## Introduction
 
@@ -26,7 +25,7 @@ Convolutional neural networks (CNNs) have become the standard approach
 for automated land cover classification from satellite imagery, with
 reported accuracies exceeding 90% on large benchmark datasets such as
 BigEarthNet, a 480,000-patch multi-label archive covering ten European
-countries (Sumbul et al., 2019). Despite this performance, CNN classifiers
+countries [@8900532]. Despite this performance, CNN classifiers
 typically output only a single point prediction with an associated
 confidence score, and this score is not a statistically reliable estimate
 of predictive uncertainty. Deep networks are frequently overconfident,
@@ -42,7 +41,7 @@ where classification errors carry meaningful cost. A recent survey of deep
 learning in remote sensing identifies uncertainty quantification as a
 comparatively underdeveloped area of the field, noting that most published
 models report point predictions without accompanying reliability measures
-(Rao et al., 2026).
+[@rao2026deep].
 
 This project addresses that gap by applying conformal prediction, a
 distribution-free statistical framework that constructs prediction sets
