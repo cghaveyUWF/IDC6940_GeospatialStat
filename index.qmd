@@ -1,6 +1,6 @@
 ---
 title: "Geospatial Stats "
-subtitle: "TEST"
+subtitle: "TEST TEST"
 author: "Colin Havey (Advisor: Dr. Cohen)"
 date: '`r Sys.Date()`'
 format:
