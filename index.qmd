@@ -40,11 +40,11 @@ CNN-based land cover classification has largely been benchmarked on BigEarthNet,
 
 Land cover classification on BigEarthNet is a multi-label problem: a single 1.2 km patch commonly contains several land cover types at once, so a model must output an independent prediction for each class rather than choosing one. The label distribution is also highly imbalanced. In BigEarthNet v2.0, “Arable land” appears in 188,025 patches, while “Beaches, dunes, sands” appears in only 1,316, a roughly 140-fold difference. Prior work on the dataset has achieved strong multi-label performance with CNNs, including architectures that process spectral bands in resolution-specific groups and show that different band groups favor different land cover types [@9537619]. The same work identifies severe class imbalance as its greatest limitation, which suggests that headline accuracy figures may hide substantially weaker performance on rare classes.
 
-## Uncertainty in Deep Learning
+### Uncertainty in Deep Learning
 
 A further limitation is that CNN classifiers report only a point prediction with an associated confidence score, and this score is not a reliable measure of uncertainty. Modern deep networks are often poorly calibrated and tend to be overconfident, assigning high probabilities to predictions that are wrong [@guo2017calibration]. In remote sensing, this gap between apparent and actual reliability is rarely addressed. Recent reviews note that only a small fraction of Earth observation studies report any measure of uncertainty, and they identify uncertainty quantification as an underdeveloped area of the field [@singh2024uncertainty; @rao2026deep].
 
-## Conformal Prediction
+### Conformal Prediction
 
 Conformal prediction offers a practical solution. Rather than a single prediction, it produces a prediction set, a set of candidate labels guaranteed to contain the true label with a user-specified probability, such as 90% [@angelopoulos2023gentle]. The guarantee holds in finite samples, requires no assumptions about the data distribution beyond exchangeability, and applies to any model that outputs scores. Because the procedure is applied after training using a held-out calibration set, it adds little computational cost. The framework has been extended to multi-label classification, where the goal is to cover the full set of labels present in each instance [@cauchois2021knowing].
 
@@ -57,7 +57,7 @@ Conformal prediction has begun to appear in remote sensing. @valle2023quantifyin
 
 This study uses the Sentinel-2 portion of BigEarthNet v2.0 [@clasen2025reben]. Each patch covers 1.2 × 1.2 km, contains 12 spectral bands at 10, 20, and 60 m resolution, and is labeled with one or more of 19 land cover classes. The metadata lists 480,038 patches after excluding those covered by snow, clouds, or cloud shadow, each assigned to an official train, validation, or test partition. These partitions were used as provided, so the model is evaluated on patches from different geographic areas than those it was trained on.
 
-Because of computational constraints, a stratified subset was drawn from each partition: up to 100 patches per class from the training and test partitions and up to 50 per class from the validation partition. Stratifying by class ensures that rare classes appear in every partition, which simple random sampling would not guarantee. Because each patch keeps all of its labels, common classes that co-occur with rare ones exceed the per-class cap. The final subset contains `r nrow(ids)` patches (`r n_split[["train"]]` train, `r n_split[["validation"]]` validation, `r n_split[["test"]]` test), with at least 101 test patches and 56 validation patches per class (@tbl-counts).
+Because of computational constraints, a stratified subset was drawn from each partition: up to 500 patches per class from the training partition, 400 from the test partition, and 100 from the validation partition. Stratifying by class ensures that rare classes appear in every partition, which simple random sampling would not guarantee. For the two rarest classes, Coastal wetlands and Beaches, dunes, sands, the test partition contains fewer patches than the cap, so all available test patches were included. Because each patch keeps all of its labels, common classes that co-occur with rare ones exceed the per-class cap. The final subset contains `r nrow(ids)` patches (`r n_split[["train"]]` train, `r n_split[["validation"]]` validation, `r n_split[["test"]]` test), with at least 516 training, 119 validation, and 117 test patches per class (@tbl-counts).
 
 ```{r}
 #| label: tbl-counts
@@ -97,7 +97,7 @@ Because the calibration and evaluation patches come from the same random split, 
 
 ### Evaluation
 
-Classification performance on the evaluation set was measured with F1 scores, a standard metric for multi-label image classification [@8900532] that balances missed classes against wrongly predicted classes. Macro-averaged F1 gives every class equal weight and therefore reflects performance on rare classes, while micro-averaged F1 is dominated by common classes.
+Classification performance was measured on the full test partition with F1 scores, a standard metric for multi-label image classification [@8900532] that balances missed classes against wrongly predicted classes. A class was counted as predicted when its probability was at least 0.5. Macro-averaged F1 gives every class equal weight and therefore reflects performance on rare classes, while micro-averaged F1 is dominated by common classes.
 
 The prediction sets were evaluated with two measures:
 

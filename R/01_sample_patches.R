@@ -7,7 +7,6 @@ set.seed(12345)
 
 meta <- read_parquet(file.path(DATA_DIR, "metadata.parquet"))
 
-# Check the real split names and the quality flags before sampling
 print(table(meta$split))
 print(table(meta$contains_seasonal_snow, meta$contains_cloud_or_shadow))
 
@@ -27,9 +26,9 @@ sample_split <- function(split_name, n) {
 }
 
 sampled <- bind_rows(
-  sample_split("train",      100),
-  sample_split("validation", 50),
-  sample_split("test",       100)
+  sample_split("train",      500),
+  sample_split("validation", 100),
+  sample_split("test",       400)
 )
 
 print(table(sampled$split))
@@ -48,3 +47,10 @@ dir.create("outputs", showWarnings = FALSE)
 saveRDS(sampled, file.path(DATA_DIR, "sampled_patches.rds"))
 write.csv(select(sampled, patch_id, split), "outputs/sampled_patch_ids.csv",
           row.names = FALSE)
+
+sampled <- readRDS("C:/bigearthnet/sampled_patches.rds")
+counts <- sampled |> unnest(labels) |> count(split, labels) |>
+  pivot_wider(names_from = split, values_from = n) |>
+  select(Class = labels, Train = train, Validation = validation, Test = test)
+write.csv(counts, "outputs/class_counts.csv", row.names = FALSE)
+print(counts, n = 19)

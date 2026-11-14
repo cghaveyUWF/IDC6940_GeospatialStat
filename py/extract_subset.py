@@ -5,8 +5,8 @@ import tarfile
 
 import zstandard as zstd
 # 
-DATA_DIR = "C:/bigearthnet"                                   # EDIT
-ARCHIVE = os.path.join(DATA_DIR, "BigEarthNet-S2.tar.zst")    # EDIT if named differently
+DATA_DIR = "C:/bigearthnet"
+ARCHIVE = os.path.join(DATA_DIR, "BigEarthNet-S2.tar.zst")
 OUT_DIR = os.path.join(DATA_DIR, "subset")
 IDS_CSV = "outputs/sampled_patch_ids.csv"
 PEEK = len(sys.argv) > 1 and sys.argv[1] == "peek"

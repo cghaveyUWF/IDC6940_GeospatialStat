@@ -1,20 +1,20 @@
 "Class","Train","Validation","Test"
-"Agro-forestry areas",184,105,219
-"Arable land",687,355,898
-"Beaches, dunes, sands",112,56,102
-"Broad-leaved forest",555,271,654
-"Coastal wetlands",110,65,101
-"Complex cultivation patterns",474,229,503
-"Coniferous forest",588,301,502
-"Industrial or commercial units",169,76,124
-"Inland waters",238,129,420
-"Inland wetlands",185,74,147
-"Land principally occupied by agriculture, with significant areas of natural vegetation",572,260,583
-"Marine waters",276,147,144
-"Mixed forest",604,298,650
-"Moors, heathland and sclerophyllous vegetation",188,92,154
-"Natural grassland and sparsely vegetated areas",152,72,123
-"Pastures",442,195,422
-"Permanent crops",218,129,212
-"Transitional woodland, shrub",578,336,665
-"Urban fabric",390,187,314
+"Agro-forestry areas",993,209,806
+"Arable land",3639,763,3035
+"Beaches, dunes, sands",516,119,152
+"Broad-leaved forest",2922,560,2464
+"Coastal wetlands",522,129,117
+"Complex cultivation patterns",2441,493,1740
+"Coniferous forest",2746,594,1999
+"Industrial or commercial units",771,153,499
+"Inland waters",1301,293,1261
+"Inland wetlands",796,165,571
+"Land principally occupied by agriculture, with significant areas of natural vegetation",2727,554,2121
+"Marine waters",1282,270,492
+"Mixed forest",2900,622,2418
+"Moors, heathland and sclerophyllous vegetation",855,189,580
+"Natural grassland and sparsely vegetated areas",720,132,497
+"Pastures",2114,414,1569
+"Permanent crops",1124,263,775
+"Transitional woodland, shrub",2916,622,2721
+"Urban fabric",1934,400,1166

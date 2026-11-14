@@ -1,0 +1,1 @@
+rstudioapi::jobRunScript("R/03_train_cnn.R", workingDir = getwd())
