@@ -1,6 +1,5 @@
 ---
-title: "Conformal Prediction for Uncertainty Quantification in Multi-Label Land Cover Classification with Convolutional Neural Networks on BigEarthNet"
-subtitle: "Capstone Projects in Data Science - Fall 2026"
+title: "Quantifying CNN Uncertainty in Land Cover Classification with Conformal Prediction"
 author: "Colin Havey (Advisor: Dr. Cohen)"
 date: '`r Sys.Date()`'
 format:
@@ -16,71 +15,97 @@ execute:
 editor: 
   markdown: 
     wrap: 72
+number-sections: true
 ---
+
+```{r}
+#| include: false
+ids <- read.csv("outputs/sampled_patch_ids.csv")
+n_split <- table(ids$split)
+```
+
 Slides: [slides.html](slides.html){target="_blank"}
 
 ## Introduction
 
-Convolutional neural networks (CNNs) have become the standard approach
-for automated land cover classification from satellite imagery, with
-reported accuracies exceeding 90% on large benchmark datasets such as
-BigEarthNet, a 480,000-patch multi-label archive covering ten European
-countries [@8900532]. Despite this performance, CNN classifiers
-typically output only a single point prediction with an associated
-confidence score, and this score is not a statistically reliable estimate
-of predictive uncertainty. Deep networks are frequently overconfident,
-particularly for underrepresented classes. In BigEarthNet, class frequency
-ranges from over 188,000 instances for "Arable land" to 1,316 for "Beaches,
-dunes, sands," a roughly 140-fold imbalance that is likely to affect
-classification reliability unevenly across classes.
+Convolutional neural networks (CNNs) now classify satellite imagery into land cover types with strong benchmark performance, but they report only a single prediction and a confidence score that is often unreliable [@guo2017calibration]. This limitation matters most where training data is scarce. In multi-label benchmarks such as BigEarthNet, some land cover classes appear over a hundred times more often than others, and models are likely to be least reliable on exactly the classes they have seen least.
 
-This lack of formal uncertainty quantification has practical consequences:
-point predictions provide no mechanism for distinguishing reliable
-classifications from unreliable ones, which limits their use in applications
-where classification errors carry meaningful cost. A recent survey of deep
-learning in remote sensing identifies uncertainty quantification as a
-comparatively underdeveloped area of the field, noting that most published
-models report point predictions without accompanying reliability measures
-[@rao2026deep].
+Conformal prediction addresses this by replacing a single prediction with a set of candidate labels that is guaranteed to contain the true label with a chosen probability [@angelopoulos2023gentle]. This project applies class-conditional conformal prediction to a CNN trained on a stratified subset of BigEarthNet v2.0 [@clasen2025reben]. It addresses three questions: (1) whether the resulting prediction sets achieve their nominal coverage for each land cover class, (2) how prediction set size varies across classes, and (3) whether variation in set size and coverage is systematically related to class frequency.
 
-This project addresses that gap by applying conformal prediction, a
-distribution-free statistical framework that constructs prediction sets
-with a guaranteed coverage probability, to a CNN trained on the BigEarthNet
-multi-label land cover classification task. The objective is to evaluate
-not only classification accuracy but also the calibration and class-wise
-behavior of the resulting prediction sets, with particular attention to
-whether prediction set size varies systematically with class imbalance.
-The remainder of this paper reviews related work in CNN-based remote sensing
-classification and conformal prediction, describes the model architecture
-and calibration procedure, and presents classification and uncertainty
-quantification results.
+## Literature Review
+
+### BigEarthNet and CNN Land Cover Classification
+
+CNN-based land cover classification has largely been benchmarked on BigEarthNet, a large-scale archive of Sentinel-2 image patches annotated with multiple land cover labels derived from the CORINE Land Cover map [@8900532]. Its refined successor, BigEarthNet v2.0, also called reBEN [@clasen2025reben], contains 549,488 patches across ten European countries and addresses several limitations of the original release: patches were reprocessed with a newer atmospheric correction, labels were rederived from the 2018 CORINE map to reduce label noise, and a geographically based train, validation, and test assignment was introduced to reduce spatial correlation between partitions. These refinements reflect a broader recognition that satellite imagery behaves differently from the natural images on which most deep learning methods were developed, and that methods designed for it should account for its spectral, spatial, and geographic structure [@rolf2024mission].
+
+Land cover classification on BigEarthNet is a multi-label problem: a single 1.2 km patch commonly contains several land cover types at once, so a model must output an independent prediction for each class rather than choosing one. The label distribution is also highly imbalanced. In BigEarthNet v2.0, “Arable land” appears in 188,025 patches, while “Beaches, dunes, sands” appears in only 1,316, a roughly 140-fold difference. Prior work on the dataset has achieved strong multi-label performance with CNNs, including architectures that process spectral bands in resolution-specific groups and show that different band groups favor different land cover types [@9537619]. The same work identifies severe class imbalance as its greatest limitation, which suggests that headline accuracy figures may hide substantially weaker performance on rare classes.
+
+## Uncertainty in Deep Learning
+
+A further limitation is that CNN classifiers report only a point prediction with an associated confidence score, and this score is not a reliable measure of uncertainty. Modern deep networks are often poorly calibrated and tend to be overconfident, assigning high probabilities to predictions that are wrong [@guo2017calibration]. In remote sensing, this gap between apparent and actual reliability is rarely addressed. Recent reviews note that only a small fraction of Earth observation studies report any measure of uncertainty, and they identify uncertainty quantification as an underdeveloped area of the field [@singh2024uncertainty; @rao2026deep].
+
+## Conformal Prediction
+
+Conformal prediction offers a practical solution. Rather than a single prediction, it produces a prediction set, a set of candidate labels guaranteed to contain the true label with a user-specified probability, such as 90% [@angelopoulos2023gentle]. The guarantee holds in finite samples, requires no assumptions about the data distribution beyond exchangeability, and applies to any model that outputs scores. Because the procedure is applied after training using a held-out calibration set, it adds little computational cost. The framework has been extended to multi-label classification, where the goal is to cover the full set of labels present in each instance [@cauchois2021knowing].
+
+Conformal prediction has begun to appear in remote sensing. @valle2023quantifying applied it to pixel-level land use and land cover classification and showed that prediction set size serves as a usable indicator of classification uncertainty, and @singh2024uncertainty demonstrated it on global land cover and tree species mapping. However, the standard procedure guarantees coverage only on average across all predictions. @ding2023class show that under class imbalance, this average guarantee can conceal systematic over-coverage of common classes and under-coverage of rare ones. Class-conditional conformal prediction addresses this by calibrating a separate threshold for each class, guaranteeing coverage within every class. The cost is that each threshold is estimated only from that class's calibration examples, so rare classes yield noisier thresholds and potentially larger, less informative prediction sets. How this tradeoff plays out in multi-label satellite image classification, where imbalance is extreme and calibration data for rare classes is limited, has received little attention.
+
 
 ## Methods
 
--   Detail the models or algorithms used.
+### Data and Sampling
 
--   Justify your choices based on the problem and data.
+This study uses the Sentinel-2 portion of BigEarthNet v2.0 [@clasen2025reben]. Each patch covers 1.2 × 1.2 km, contains 12 spectral bands at 10, 20, and 60 m resolution, and is labeled with one or more of 19 land cover classes. The metadata lists 480,038 patches after excluding those covered by snow, clouds, or cloud shadow, each assigned to an official train, validation, or test partition. These partitions were used as provided, so the model is evaluated on patches from different geographic areas than those it was trained on.
 
-*The common non-parametric regression model is*
-$Y_i = m(X_i) + \varepsilon_i$*, where* $Y_i$ *can be defined as the sum
-of the regression function value* $m(x)$ *for* $X_i$*. Here* $m(x)$ *is
-unknown and* $\varepsilon_i$ *some errors. With the help of this
-definition, we can create the estimation for local averaging i.e.*
-$m(x)$ *can be estimated with the product of* $Y_i$ *average and* $X_i$
-*is near to* $x$*. In other words, this means that we are discovering
-the line through the data points with the help of surrounding data
-points. The estimation formula is printed below [@R-base]:*
+Because of computational constraints, a stratified subset was drawn from each partition: up to 100 patches per class from the training and test partitions and up to 50 per class from the validation partition. Stratifying by class ensures that rare classes appear in every partition, which simple random sampling would not guarantee. Because each patch keeps all of its labels, common classes that co-occur with rare ones exceed the per-class cap. The final subset contains `r nrow(ids)` patches (`r n_split[["train"]]` train, `r n_split[["validation"]]` validation, `r n_split[["test"]]` test), with at least 101 test patches and 56 validation patches per class (@tbl-counts).
 
-$$
-M_n(x) = \sum_{i=1}^{n} W_n (X_i) Y_i  \tag{1}
-$$$W_n(x)$ *is the sum of weights that belongs to all real numbers.
-Weights are positive numbers and small if* $X_i$ *is far from* $x$*.*
+```{r}
+#| label: tbl-counts
+#| tbl-cap: "Patches per land cover class in the sampled subset."
+#| echo: false
+knitr::kable(read.csv("outputs/class_counts.csv"))
+```
 
-*Another equation:*
+### Preprocessing
 
-$$
-y_i = \beta_0 + \beta_1 X_1 +\varepsilon_i
-$$
+The 20 m and 60 m bands were resampled to match the 10 m bands, producing a 120 × 120 pixel image with 12 bands for each patch. Each band was then standardized using the mean and standard deviation of the training subset, which puts all bands on a comparable scale and helps the model train. Only training statistics were used, so that no information from the validation or test data influenced the model.
+
+### Model
+
+Classification used a convolutional neural network (CNN), which learns spatial and spectral patterns directly from the image bands rather than relying on hand-designed features. The network follows the design used by @9537619 on BigEarthNet: four convolutional blocks that progressively extract more complex features, followed by an output layer with one unit for each of the 19 classes. A small architecture was chosen because the training subset is modest in size and training runs on a CPU, where a larger network would be slow and more likely to overfit.
+
+Because the task is multi-label, each output unit uses a sigmoid activation, producing an independent probability for its class, rather than a softmax activation, which forces probabilities to sum to one across classes. The model was trained to minimize binary cross-entropy, which penalizes the model for each class it predicts incorrectly, and training stopped early once performance on the validation set stopped improving. The model was implemented in R using keras3 with TensorFlow.
+
+### Conformal Prediction
+
+Conformal prediction converts the model’s probabilities into prediction sets, lists of classes that are guaranteed to include each true class a chosen percentage of the time [@angelopoulos2023gentle]. This study uses the class-conditional version, which sets a separate threshold for each class. The standard version guarantees coverage only on average across all classes, which can hide poor coverage of rare classes [@ding2023class], and that is the behavior this study examines.
+
+The procedure is as follows:
+
+1. Randomly split the test patches into two equal halves: a calibration set and an evaluation set. Neither half is used in training.
+2. Run the trained model on the calibration set.
+3. For each class, take the calibration patches that truly contain that class and compute a score for each one:
+   $$s = 1 - \hat{p}$$
+
+   where $\hat{p}$ is the probability the model gave to that class. A low score means the model was confident and correct.
+4. For each class, set a threshold $\hat{q}$ at the score below which 90% of that class’s calibration scores fall, slightly adjusted upward to account for the finite sample size [@angelopoulos2023gentle].
+5. For each evaluation patch, include a class in its prediction set if the patch’s score for that class falls below the class threshold:
+   $$\text{include class } k \text{ if } \; 1 - \hat{p}_k \le \hat{q}_k$$
+6. Repeat steps 4 and 5 at 95% and 80% target coverage to see how the results change.
+
+Because the calibration and evaluation patches come from the same random split, this procedure guarantees that each class present in a patch is included in its prediction set at least 90% of the time, on average across patches.
+
+### Evaluation
+
+Classification performance on the evaluation set was measured with F1 scores, a standard metric for multi-label image classification [@8900532] that balances missed classes against wrongly predicted classes. Macro-averaged F1 gives every class equal weight and therefore reflects performance on rare classes, while micro-averaged F1 is dominated by common classes.
+
+The prediction sets were evaluated with two measures:
+
+- Coverage: for each class, the percentage of evaluation patches containing that class whose prediction set included it. Coverage at or above 90% means the guarantee held.
+$$\text{Coverage}_k = \frac{\text{patches containing class } k \text{ with } k \text{ in the prediction set}}{\text{patches containing class } k}$$
+- Set size: the number of classes in each prediction set. Smaller sets indicate a more confident model.
+
+Finally, to test whether uncertainty is linked to class frequency, each class’s average set size and coverage were compared with its number of training patches using Spearman rank correlation. This measures whether the two rank in the same order without assuming a straight-line relationship.
 
 ## Analysis and Results
 

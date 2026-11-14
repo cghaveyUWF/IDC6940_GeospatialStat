@@ -27,9 +27,9 @@ sample_split <- function(split_name, n) {
 }
 
 sampled <- bind_rows(
-  sample_split("train",      500),
-  sample_split("validation", 100),
-  sample_split("test",       400)
+  sample_split("train",      100),
+  sample_split("validation", 50),
+  sample_split("test",       100)
 )
 
 print(table(sampled$split))
