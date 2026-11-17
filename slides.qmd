@@ -1,6 +1,5 @@
 ---
-title: "Geospatial Stats"
-subtitle: "This is a Slide Template"
+title: "Class-Conditional Conformal Prediction for Imbalanced Multi-Label Land Cover Classification"
 author: "Colin Havey (Advisor: Dr. Cohen)"
 date: '`r Sys.Date()`'
 format:
@@ -17,101 +16,61 @@ editor:
     wrap: 72
 ---
 
-::: callout-important
-**Remember:** Your goal is to make your audience understand and care
-about your findings. By crafting a compelling story, you can effectively
-communicate the value of your data science project.
+## Convolutional Neural Networks
 
-Carefully read this template since it has instructions and tips to
-writing!
+-   Deep learning models designed for grid-like data, such as images
+-   Layers of small filters detect simple patterns (edges, textures),
+    then combine them into progressively more complex ones
+-   Filters are learned from data rather than hand-designed
 
-More information about `revealjs`:
-<https://quarto.org/docs/reference/formats/presentations/revealjs.html>
-:::
+## Applications of CNNs
 
-## Introduction  {.smaller}
+:::: columns
+-   Facial recognition (smartphones, video surveillance)
+-   Vehicle cameras (pedestrians, traffic lights, other vehicles)
+-   Medical imaging (X-rays, MRI, CT scans)
+-   Handwriting recognition
+-   **Remote sensing:** (environmental monitoring, object detection,
+    and **land cover classification**)
+::::
 
--   Develop a storyline that captures attention and maintains interest.
+## Land cover classification
 
--   Your audience is your peers
+:::: columns
+-   Sentinel-2 images nearly all of Earth's land surface every few
+    days in 13 spectral bands
+-   Far more imagery than can be labeled by hand
+-   CNNs are the standard model for land cover classification
+-   Filters capture field boundaries and shorelines, using every
+    spectral band, not only visible color
+::::
 
--   Clearly state the problem or question you're addressing.
+## Dataset: BigEarthNet
 
--   Introduce why it is relevant needs.
+:::: columns
+-   Widely used benchmark, released in 2019 [@8900532]
+-   Over half a million Sentinel-2 patches from 10 European countries
+-   Each patch: 1.2 × 1.2 km and 12 spectral bands
+-   Multi-label: a patch can contain several of 19 land cover
+    classes at once
+-   v2.0 (used here): improved atmospheric correction, updated
+    labels, and a geographic train / validation / test split
+    [@clasen2025reben]
+::::
 
--   Provide an overview of your approach.
+## The Problem
 
-In kernel estimator, weight function is known as kernel function
-[@efr2008]. Cite this paper [@bro2014principal]. The GEE [@wang2014].
-The PCA [@daffertshofer2004pca]\*
+-   CNNs give one prediction per class, with a confidence score that
+    is often unreliable [@guo2017calibration]
+-   Matters most for rare classes: "Beaches, dunes, sands" appears
+    about **140 times** less often than "Arable land"
 
-## Methods
+## Conformal Prediction
 
--   Detail the models or algorithms used.
-
--   Justify your choices based on the problem and data.
-
-
-
-## Data Exploration and Visualization
-
--   Describe your data sources and collection process.
-
--   Present initial findings and insights through visualizations.
-
--   Highlight unexpected patterns or anomalies.
-
-## Data Exploration and Visualization {.smaller}
-
-A study was conducted to determine how...
-
-```{r, warning=FALSE, echo=F, message=FALSE}
-# loading packages 
-library(tidyverse)
-library(knitr)
-library(ggthemes)
-library(ggrepel)
-library(dslabs)
-```
-
-```{r, warning=FALSE, echo=F}
-# Load Data
-#kable(head(murders))
-
-ggplot1 = murders %>% ggplot(mapping = aes(x=population/10^6, y=total)) 
-
-  ggplot1 + geom_point(aes(col=region), size = 4) +
-  geom_text_repel(aes(label=abb)) +
-  scale_x_log10() +
-  scale_y_log10() +
-  geom_smooth(formula = "y~x", method=lm,se = F)+
-  xlab("Populations in millions (log10 scale)") + 
-  ylab("Total number of murders (log10 scale)") +
-  ggtitle("US Gun Murders in 2010") +
-  scale_color_discrete(name = "Region")+
-      theme_bw()
-  
-
-```
-
-## Modeling and Results
-
--   Explain your data preprocessing and cleaning steps.
-
--   Present your key findings in a clear and concise manner.
-
--   Use visuals to support your claims.
-
--   **Tell a story about what the data reveals.**
-
-```{r}
-
-```
-
-## Conclusion
-
--   Summarize your key findings.
-
--   Discuss the implications of your results.
+-   Replaces a single prediction with a **prediction set**
+-   Works for any sample size and any model that outputs scores;
+    assumes only exchangeability
+-   This project: class-conditional conformal prediction on a CNN
+    trained on a stratified subset of BigEarthNet v2.0
 
 ## References

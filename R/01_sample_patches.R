@@ -1,20 +1,24 @@
+# 01_sample_patches.R: Draw a stratified subset of BigEarthNet v2.0 patches
+
 library(arrow)
 library(dplyr)
 library(tidyr)
 
-DATA_DIR <- "C:/bigearthnet"   # Local folder containing metadata.parquet
+DATA_DIR <- "C:/bigearthnet" # Local folder containing metadata.parquet
 set.seed(12345)
 
+# Load metadata
 meta <- read_parquet(file.path(DATA_DIR, "metadata.parquet"))
 
 print(table(meta$split))
 print(table(meta$contains_seasonal_snow, meta$contains_cloud_or_shadow))
 
+# One row per (patch, label) pair
 meta_long <- meta |>
   select(patch_id, split, labels) |>
   unnest(labels)
 
-# Up to n patches per class per split (smaller groups are returned whole)
+# Stratified sampling
 sample_split <- function(split_name, n) {
   meta_long |>
     filter(split == split_name) |>
@@ -33,21 +37,23 @@ sampled <- bind_rows(
 
 print(table(sampled$split))
 
-# Attach the full label list to each sampled patch
+# Re-attach labels
 sampled <- sampled |>
   left_join(select(meta, patch_id, labels), by = "patch_id")
 
-# Per-class counts per split, to check rare classes survived
+# Per-class counts per split
 print(
   sampled |> unnest(labels) |> count(split, labels) |>
     pivot_wider(names_from = split, values_from = n)
 )
 
+# Save the sample
 dir.create("outputs", showWarnings = FALSE)
 saveRDS(sampled, file.path(DATA_DIR, "sampled_patches.rds"))
 write.csv(select(sampled, patch_id, split), "outputs/sampled_patch_ids.csv",
           row.names = FALSE)
 
+# Save per-class counts
 sampled <- readRDS("C:/bigearthnet/sampled_patches.rds")
 counts <- sampled |> unnest(labels) |> count(split, labels) |>
   pivot_wider(names_from = split, values_from = n) |>

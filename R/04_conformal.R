@@ -1,29 +1,37 @@
+# 04_conformal.R: Class-conditional conformal prediction and evaluation
+
+# One row per test patch, one column per class
 p <- as.matrix(read.csv("outputs/test_probs.csv",  check.names = FALSE))
 y <- as.matrix(read.csv("outputs/test_labels.csv", check.names = FALSE))
 classes <- colnames(p)
 stopifnot(identical(classes, colnames(y)))
-counts  <- read.csv("outputs/class_counts.csv", check.names = FALSE)
-train_n <- counts$Train[match(classes, counts$Class)]
+counts <- read.csv("outputs/class_counts.csv", check.names = FALSE)
+train_n <- counts$Train[match(classes, counts$Class)]   # Training frequency per class
 n <- nrow(p)
 
+# One conformal run (one random split, one coverage level)
 run_split <- function(seed, alpha) {
+  # Randomly split test patches into calibration and evaluation halves
   set.seed(seed)
   cal <- sample(n, floor(n / 2))
-  p_cal <- p[cal, ];  y_cal <- y[cal, ]
-  p_ev  <- p[-cal, ]; y_ev  <- y[-cal, ]
+  p_cal <- p[cal, ]; y_cal <- y[cal, ]
+  p_ev <- p[-cal, ]; y_ev <- y[-cal, ]
+  # Per-class threshold: finite-sample-adjusted quantile of 1 - p over patches with the class
   qhat <- sapply(seq_along(classes), function(k) {
     s <- 1 - p_cal[y_cal[, k] == 1, k]
     r <- ceiling((length(s) + 1) * (1 - alpha))
     if (r > length(s)) 1 else sort(s)[r]
   })
+  # Prediction sets: TRUE where a class's score is within its threshold
   sets <- sweep(1 - p_ev, 2, qhat, "<=")
+  # Per-class results for this run
   data.frame(
     rep = seed, alpha = alpha, class = classes, train_n = train_n,
-    n_cal      = colSums(y_cal),
-    min_prob   = 1 - qhat,
-    coverage   = colSums(sets & y_ev == 1) / colSums(y_ev),
-    false_incl = colSums(sets & y_ev == 0) / colSums(y_ev == 0),
-    set_size   = mean(rowSums(sets))
+    n_cal = colSums(y_cal), # Calibration patches with the class
+    min_prob = 1 - qhat, # Minimum inclusion probability
+    coverage = colSums(sets & y_ev == 1) / colSums(y_ev), # Share of true cases included
+    false_incl = colSums(sets & y_ev == 0) / colSums(y_ev == 0), # Share of absent cases included
+    set_size = mean(rowSums(sets)) # Average classes per set
   )
 }
 
@@ -35,10 +43,10 @@ write.csv(res, "outputs/conformal_reps.csv", row.names = FALSE)
 # Average over splits, per class and coverage level
 summ <- aggregate(cbind(n_cal, min_prob, coverage, false_incl) ~ class + train_n + alpha,
                   data = res, FUN = mean)
-summ$coverage_sd <- aggregate(coverage ~ class + alpha, data = res, FUN = sd)$coverage[
-  match(paste(summ$class, summ$alpha),
-        paste(aggregate(coverage ~ class + alpha, data = res, FUN = sd)$class,
-              aggregate(coverage ~ class + alpha, data = res, FUN = sd)$alpha))]
+
+# Coverage SD across splits (coverage variability)
+sds <- aggregate(coverage ~ class + alpha, data = res, FUN = sd)
+summ <- merge(summ, setNames(sds, c("class", "alpha", "coverage_sd")), by = c("class", "alpha"))
 write.csv(summ, "outputs/conformal_summary.csv", row.names = FALSE)
 
 # F1 on the full test partition (F1 does not use calibration)
@@ -58,7 +66,7 @@ s90 <- s90[order(s90$train_n), ]
 print(s90[, c("class", "train_n", "n_cal", "min_prob", "coverage", "coverage_sd", "false_incl")],
       row.names = FALSE, digits = 3)
 
-# Spearman tests at 90%
+# Spearman tests at 90% (Bonferroni-corrected significance level: 0.0125)
 for (v in c("min_prob", "false_incl", "coverage", "coverage_sd")) {
   ct <- cor.test(s90$train_n, s90[[v]], method = "spearman", exact = FALSE)
   cat(sprintf("train_n vs %s: rho = %.2f, p = %.3f\n", v, ct$estimate, ct$p.value))
